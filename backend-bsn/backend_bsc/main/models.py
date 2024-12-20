@@ -1,4 +1,7 @@
+from datetime import date
 from django.db import models
+from django.core.exceptions import ValidationError
+
 
 
 class Hauberge(models.Model):
@@ -21,6 +24,12 @@ class Hauberge(models.Model):
 
     def __str__(self):
         return self.nom
+    def clean(self):
+        if self.nbr_personne_reserve>=self.capacite:
+            raise ValidationError("NUMBEr rah bzaf habibi")
+    def save(self,*args,**kwargs):
+        self.disponibilite=self.nbr_personne_reserve<self.capacite
+        super().save(*args, **kwargs)    
 
 
 class Resident(models.Model):
@@ -39,7 +48,10 @@ class Resident(models.Model):
 
     def __str__(self):
         return f"{self.nom} {self.prenom}"
-
+    def clean(self):
+        age = date.today().year - self.date_naissance.year
+        if age < 18 and not self.permission_parentale:
+            raise ValidationError("Parental permission is required for residents under 18.")
 
 class BlackList(models.Model):
     nom = models.CharField(max_length=255)
@@ -48,7 +60,7 @@ class BlackList(models.Model):
 
     def __str__(self):
         return f"{self.nom} {self.prenom}"
-
+    
 
 class Reservation(models.Model):
     NATURE_CHOICES = [
@@ -66,7 +78,26 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Reservation #{self.id} - {self.hauberge.nom}"
-
+    def clean(self):
+        if self.date_entree<=self.data_sortie:
+            raise ValidationError("The departure date must be after the entry date.")
+        if self.hauberge.nbr_personne_reserve+1>self.hauberge.capacite:
+            raise ValidationError("The hauberge does not have enough capacity for this reservation")  
+        overlapping_reservation=Reservation.objects.filter(
+            Hauberge=self.hauberge,
+            numero_chambre=self.numero_chambre,
+            data_sortie=self.date_sortie,
+            data_entrie=self.date_entree,
+            
+        ).exists()
+        if overlapping_reservation:
+            raise ValidationError("this room is already resreved  for the selected date")
+        def save(self, *args, **kwargs):
+            if not self.restauration_montant:
+                days=(self.data_sortie-self.date_entree).days
+                self.restauration_montant=100*days  #TODO
+                super().save(*args, **kwargs)
+                
 
 class HaubergeResident(models.Model):
     hauberge = models.ForeignKey(Hauberge, on_delete=models.CASCADE)
@@ -74,3 +105,7 @@ class HaubergeResident(models.Model):
 
     def __str__(self):
         return f"{self.resident.nom} in {self.hauberge.nom}"
+    def clean(self):
+        if HaubergeResident.objects.filter(hauberge=self.hauberge, resident=self.resident).exists():
+            raise ValidationError("This resident is already linked to the hauberge.")
+        
