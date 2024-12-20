@@ -1,37 +1,18 @@
-from django.contrib.auth.models import BaseUserManager
-
-class CustomUserManager(BaseUserManager):
-    """
-    Custom manager for the AbstractBaseUserModel to handle user creation.
-    """
-    def create_user(self, email, first_name, last_name, identity_card_number, password=None, **extra_fields):
-        if not email:
-            raise ValueError("The Email field must be set.")
-        if not identity_card_number:
-            raise ValueError("The Identity Card Number field must be set.")
-
-        email = self.normalize_email(email)
-        extra_fields.setdefault('is_active', True)
-        extra_fields.setdefault('iscamp', False)  # Default iscamp to False for all users.
-
-        user = self.model(
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            identity_card_number=identity_card_number,
-            **extra_fields
-        )
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, first_name, last_name, identity_card_number, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError("Superuser must have is_staff=True.")
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError("Superuser must have is_superuser=True.")
-
-        return self.create_user(email, first_name, last_name, identity_card_number, password, **extra_fields)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializer import RegisterSerializer
+from rest_framework.permissions import AllowAny
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+  
+    def post(self, request):
+        print("Request data:", request.data)
+        serializer = RegisterSerializer(data=request.data)
+        print("Serializer:", serializer)
+        if serializer.is_valid():
+            serializer.save()
+            print("User registered successfully.")
+            return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+        print("Serializer errors:", serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
