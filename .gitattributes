@@ -1,2 +1,38 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Python files
+*.pyc
+*.pyo
+__pycache__/
+
+# Django specific
+*.log
+*.pot
+*.py[cod]
+db.sqlite3
+media/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Environment variables
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Migrations
+**/migrations/*
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dis
